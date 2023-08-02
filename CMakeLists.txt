@@ -3,5 +3,5 @@ project(pong ASM)
 
 find_package(SDL2 REQUIRED)
 
-add_executable(pong src/main.asm)
+add_executable(pong src/main.asm src/grid.asm)
 target_link_libraries(pong ${SDL2_LIBRARIES})

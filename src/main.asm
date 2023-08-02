@@ -32,15 +32,27 @@ str x0, [sp, #8]
 
 mov w0, 0
 str w0, [sp, #16] // Should Quit Variable
+
+bl _SDL_GetTicks
+str w0, [sp, #20] // lastTick
+
+mov w0, 0   // x
+mov w1, 40  // y
+mov w2, 20   // width
+mov w3, 14   // height
+mov w4, 40  // cell_size
+bl grid_create
+str x0, [sp, #24] // Grid pointer
+
 Lgame_loop:
     ldr w0, [sp, #16]
     cmp w0, 1
     beq Lend_game_loop // End if we quitted
 
     ldr x0, [sp, #8]
-    mov w1, 255
-    mov w2, 255
-    mov w3, 255
+    mov w1, 0
+    mov w2, 0
+    mov w3, 0
     mov w4, 255
     bl _SDL_SetRenderDrawColor
     ldr x0, [sp, #8]
@@ -48,13 +60,13 @@ Lgame_loop:
 
     // Process Events
     Levent_loop:
-        add x0, sp, 0x10       // Event e
+        add x0, sp, 32       // Event e
         bl _SDL_PollEvent
         cmp w0, #0
         beq Lend_event_loop // While PollEvent is not 0 we run the gameloop
         // Check Events
         // Load Type
-        ldr w0, [sp, 0x10] // e.type
+        ldr w0, [sp, 32] // e.type
         cmp w0, #256 // Quit Event
         bne Lend_event_check
         mov w1, 1
@@ -65,29 +77,30 @@ Lgame_loop:
     Lend_event_loop:
 
 
+    // Update
+    bl _SDL_GetTicks
+    ldr w1, [sp, #20] // last update
+    sub w1, w0, w1 // w1 = GetTicks() - lastUpdate
+    cmp w1, #1000 // 1sec update interval
+    blt Lend_update // w1 >= 1000 ==> Update
+        str w0, [sp, #20] // lastUpdate = now
+
+    Lend_update:
+
+    // Render
     ldr x0, [sp, #8]
-    mov w1, 0
-    mov w2, 0
-    mov w3, 0
-    mov w4, 255
-    bl _SDL_SetRenderDrawColor
+    ldr x1, [sp, #24]
+    bl grid_render
 
-    mov w0, #0
-    str wzr, [sp, 0x14] // x=0
-    str wzr, [sp, 0x18] // y=0
-    mov w0, #100
-    str w0, [sp, #0x1c] // w=100
-    str w0, [sp, #0x20] // h=100
-    ldr x0, [sp, #0x8]
-    add x1, sp, 0x14   // Rect
-    bl _SDL_RenderFillRect
-
+    // Present
     ldr x0, [sp, #8]
     bl _SDL_RenderPresent
 
     b Lgame_loop
 
 Lend_game_loop:
+
+// TODO: Free Grid
 
 ldr x0, [sp, #8]
 bl _SDL_DestroyRenderer
