@@ -2,10 +2,9 @@
 .align 4
 
 _main:
-sub sp, sp, #0x60
-str x19, [sp, #0x40]
-stp x29, x30, [sp, #0x50]
-add x29, sp, #0x50
+stp x29, x30, [sp, #-0x10]! // Sub sp 0x10 and save x29, x30 on stack
+mov x29, sp // Save this stack frame
+sub sp, sp, #0x100 // Make space for variables (0x60 bytes of space)
 
 // Draw Init Message
 adr x0, init_sdl_msg
@@ -26,7 +25,7 @@ mov w1, #0x2FFF0000
 bl _SDL_CreateWindow
 str x0, [sp]
 mov w1, -1
-mov w2, 2
+mov w2, 6   // Accelerated + VSync
 bl _SDL_CreateRenderer
 str x0, [sp, #8]
 
@@ -48,24 +47,40 @@ Lgame_loop:
     bl _SDL_RenderClear
 
     // Process Events
-    sub sp, sp, 0x40 // Make Space for Event e and align to 16 bytes
     Levent_loop:
-        mov x0, sp       // Event e
+        add x0, sp, 0x10       // Event e
         bl _SDL_PollEvent
         cmp w0, #0
         beq Lend_event_loop // While PollEvent is not 0 we run the gameloop
         // Check Events
         // Load Type
-        ldr w0, [sp] // e.type
+        ldr w0, [sp, 0x10] // e.type
         cmp w0, #256 // Quit Event
         bne Lend_event_check
         mov w1, 1
-        str w1, [sp, (0x40+16)] // 0x40[Event]+8[should_quit]
+        str w1, [sp, #16] // Should_Quit=1
         b Lend_event_loop
         Lend_event_check:
         b Levent_loop
     Lend_event_loop:
-    add sp, sp, 0x40 // Clean up (Event e)
+
+
+    ldr x0, [sp, #8]
+    mov w1, 0
+    mov w2, 0
+    mov w3, 0
+    mov w4, 255
+    bl _SDL_SetRenderDrawColor
+
+    mov w0, #0
+    str wzr, [sp, 0x14] // x=0
+    str wzr, [sp, 0x18] // y=0
+    mov w0, #100
+    str w0, [sp, #0x1c] // w=100
+    str w0, [sp, #0x20] // h=100
+    ldr x0, [sp, #0x8]
+    add x1, sp, 0x14   // Rect
+    bl _SDL_RenderFillRect
 
     ldr x0, [sp, #8]
     bl _SDL_RenderPresent
@@ -80,9 +95,8 @@ bl _SDL_DestroyRenderer
 ldr x0, [sp]
 bl _SDL_DestroyWindow
 
-ldp x29, x30, [sp, #0x50]
-ldr x19, [sp, #0x40]
-add sp, sp, #0x60
+add sp, sp, 0x100
+ldp x29, x30, [sp], #0x10
 mov w0, #0
 ret
 
