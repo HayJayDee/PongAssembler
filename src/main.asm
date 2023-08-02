@@ -120,5 +120,5 @@ sdl_title:          .ascii "PongAsm"
 
 .equ SDL_VIDEO_INIT, 0x00000020
 .equ SHOW_WINDOW, 0x00000004
-.equ WINDOW_WIDTH, 800
-.equ WINDOW_HEIGHT, 600
+.equ WINDOW_WIDTH, 801
+.equ WINDOW_HEIGHT, 610
