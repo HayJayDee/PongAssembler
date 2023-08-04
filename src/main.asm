@@ -44,6 +44,18 @@ mov w4, 40  // cell_size
 bl grid_create
 str x0, [sp, #24] // Grid pointer
 
+mov w0, 1
+mov w1, 0
+mov x2, 0
+bl snake_part_create
+
+mov x2, x0
+mov w0, 0
+mov w1, 0
+bl snake_part_create
+str x0, [sp, #32] // Snake head pointer
+
+
 Lgame_loop:
     ldr w0, [sp, #16]
     cmp w0, 1
@@ -60,13 +72,13 @@ Lgame_loop:
 
     // Process Events
     Levent_loop:
-        add x0, sp, 32       // Event e
+        add x0, sp, 40       // Event e
         bl _SDL_PollEvent
         cmp w0, #0
         beq Lend_event_loop // While PollEvent is not 0 we run the gameloop
         // Check Events
         // Load Type
-        ldr w0, [sp, 32] // e.type
+        ldr w0, [sp, 40] // e.type
         cmp w0, #256 // Quit Event
         bne Lend_event_check
         mov w1, 1
@@ -92,6 +104,12 @@ Lgame_loop:
     ldr x1, [sp, #24]
     bl grid_render
 
+    ldr x0, [sp, #8]
+    ldr x1, [sp, #32]
+    mov w2, 1
+    ldr x3, [sp, #24]
+    bl snake_part_render
+
     // Present
     ldr x0, [sp, #8]
     bl _SDL_RenderPresent
@@ -100,7 +118,8 @@ Lgame_loop:
 
 Lend_game_loop:
 
-// TODO: Free Grid
+ldr x0, [sp, #24]
+bl _free
 
 ldr x0, [sp, #8]
 bl _SDL_DestroyRenderer
@@ -116,7 +135,7 @@ ret
 .align 4
 init_sdl_msg:       .ascii  "Initializing SDL2\n"
 .align 4
-sdl_title:          .ascii "PongAsm"
+sdl_title:          .ascii "Snake Asm"
 
 .equ SDL_VIDEO_INIT, 0x00000020
 .equ SHOW_WINDOW, 0x00000004
