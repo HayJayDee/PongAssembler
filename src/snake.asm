@@ -1,6 +1,7 @@
 .align 4
 .global snake_part_create
 .global snake_part_render
+.global snake_part_move
 
 // snake_part:
 // x uint32
@@ -34,7 +35,7 @@ snake_part_create:
 snake_part_render:
     stp x29, x30, [sp, #-0x10]! // Sub sp 0x10 and save x29, x30 on stack
     mov x29, sp // Save this stack frame
-    sub sp, sp, 0x100
+    sub sp, sp, 0x30
     stp x19, x20, [sp]
     str x0, [sp, #16] // Save renderer
     mov x19, x1 // Save Snakepart
@@ -90,6 +91,29 @@ snake_part_render:
     Lend_render:
 
     ldp x19, x20, [sp]
+    add sp, sp, 0x30
+    ldp x29, x30, [sp], #0x10
+    ret
+
+// snake_part, new_x, new_y
+snake_part_move:
+    stp x29, x30, [sp, #-0x10]! // Sub sp 0x10 and save x29, x30 on stack
+    mov x29, sp // Save this stack frame
+    sub sp, sp, 0x100
+
+    ldp w3, w4, [x0] // Save old x and y
+    stp w1, w2, [x0] // Set new x and y
+    
+    ldr x5, [x0, #8] // Get next part
+    cmp x5, 0
+    beq Lend_snake_move
+
+        mov w1, w3 // Set new_x for child
+        mov w2, w4 // Set new_y for child
+        mov x0, x5
+        bl snake_part_move
+    Lend_snake_move:
+
     add sp, sp, 0x100
     ldp x29, x30, [sp], #0x10
     ret

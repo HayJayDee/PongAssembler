@@ -44,17 +44,25 @@ mov w4, 40  // cell_size
 bl grid_create
 str x0, [sp, #24] // Grid pointer
 
-mov w0, 1
+mov w0, 0
 mov w1, 0
 mov x2, 0
 bl snake_part_create
 
 mov x2, x0
-mov w0, 0
+mov w0, 1
+mov w1, 0
+bl snake_part_create
+
+mov x2, x0
+mov w0, 2
 mov w1, 0
 bl snake_part_create
 str x0, [sp, #32] // Snake head pointer
 
+mov w0, 1
+str w0, [sp, #40]
+str wzr, [sp, #44] // Set move_y to 0
 
 Lgame_loop:
     ldr w0, [sp, #16]
@@ -70,20 +78,56 @@ Lgame_loop:
     ldr x0, [sp, #8]
     bl _SDL_RenderClear
 
+
+
     // Process Events
     Levent_loop:
-        add x0, sp, 40       // Event e
+        add x0, sp, 48       // Event e
         bl _SDL_PollEvent
         cmp w0, #0
         beq Lend_event_loop // While PollEvent is not 0 we run the gameloop
         // Check Events
         // Load Type
-        ldr w0, [sp, 40] // e.type
+        ldr w0, [sp, 48] // e.type
+
+        cmp w0, #0x300 // SDL_KEYDOWN
+        bne Levent_quit_check
+            ldr w0, [sp, 68] // Scancode
+            cmp w0, 100 // d
+            bne Lcheck_key_a
+                mov w1, 1
+                mov w2, 0
+                b Lend_key_checks
+            Lcheck_key_a:
+            cmp w0, 97 // check a
+            bne Lcheck_key_w
+                mov w1, -1
+                mov w2, 0
+                b Lend_key_checks
+            Lcheck_key_w:
+            cmp w0, 119 // check w
+            bne Lcheck_key_s
+                mov w1, 0
+                mov w2, -1
+                b Lend_key_checks
+            Lcheck_key_s:
+
+            cmp w0, 115 // check s
+            bne Lcheck_key_s
+                mov w1, 0
+                mov w2, 1
+                b Lend_key_checks
+
+            Lend_key_checks:
+                stp w1, w2, [sp, 40]
+            b Lend_event_check
+
+        Levent_quit_check:
         cmp w0, #256 // Quit Event
         bne Lend_event_check
-        mov w1, 1
-        str w1, [sp, #16] // Should_Quit=1
-        b Lend_event_loop
+            mov w1, 1
+            str w1, [sp, #16] // Should_Quit=1
+            b Lend_event_loop
         Lend_event_check:
         b Levent_loop
     Lend_event_loop:
@@ -93,9 +137,17 @@ Lgame_loop:
     bl _SDL_GetTicks
     ldr w1, [sp, #20] // last update
     sub w1, w0, w1 // w1 = GetTicks() - lastUpdate
-    cmp w1, #1000 // 1sec update interval
+    cmp w1, #250 // 250ms update interval
     blt Lend_update // w1 >= 1000 ==> Update
         str w0, [sp, #20] // lastUpdate = now
+
+        ldp w3, w4, [sp, #40] // Get move_x, move_y
+
+        ldr x0, [sp, #32] // Get snake_head
+        ldp w1, w2, [x0] // Get curr_x, curr_y
+        add w1, w1, w3
+        add w2, w2, w4
+        bl snake_part_move
 
     Lend_update:
 
